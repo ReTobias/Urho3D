@@ -63,12 +63,9 @@ if (IOS)
         set (CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET ${IPHONEOS_DEPLOYMENT_TARGET})
     endif ()
     set (CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
-    if (DEFINED ENV{TRAVIS})
-        # TODO: recheck this again and remove this workaround later
-        # Ensure the CMAKE_OSX_DEPLOYMENT_TARGET is set to empty, something is wrong with Travis-CI OSX CI environment at the moment
-        set (CMAKE_OSX_DEPLOYMENT_TARGET)
-        unset (CMAKE_OSX_DEPLOYMENT_TARGET CACHE)
-    endif ()
+    # Workaround what appears to be a bug in CMake/Xcode generator, ensure the CMAKE_OSX_DEPLOYMENT_TARGET is set to empty for iOS build
+    set (CMAKE_OSX_DEPLOYMENT_TARGET)
+    unset (CMAKE_OSX_DEPLOYMENT_TARGET CACHE)
 elseif (XCODE)
     set (CMAKE_OSX_SYSROOT macosx)    # Set Base SDK to "Latest OS X"
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
@@ -836,7 +833,7 @@ macro (create_symlink SOURCE DESTINATION)
             # Fallback to copy only one time
             execute_process (${COMMAND})
             if (TARGET ${TARGET_NAME})
-                # Fallback to copy everytime the target is built
+                # Fallback to copy every time the target is built
                 add_custom_command (TARGET ${TARGET_NAME} POST_BUILD ${COMMAND})
             endif ()
         else ()
@@ -1561,9 +1558,9 @@ macro (define_dependency_libs TARGET)
             endif ()
         elseif (APPLE)
             if (IOS OR TVOS)
-                list (APPEND LIBS "-framework AudioToolbox" "-framework CoreAudio" "-framework CoreGraphics" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
+                list (APPEND LIBS "-framework AudioToolbox" "-framework AVFoundation" "-framework CoreAudio" "-framework CoreGraphics" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
             else ()
-                list (APPEND LIBS "-framework AudioUnit" "-framework Carbon" "-framework Cocoa" "-framework CoreAudio" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
+                list (APPEND LIBS "-framework AudioToolbox" "-framework Carbon" "-framework Cocoa" "-framework CoreAudio" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
             endif ()
         endif ()
 

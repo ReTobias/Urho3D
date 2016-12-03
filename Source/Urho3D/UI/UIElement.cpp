@@ -304,13 +304,13 @@ bool UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile, bool setIn
     return true;
 }
 
-bool UIElement::LoadChildXML(const XMLElement& childElem, XMLFile* styleFile, bool setInstanceDefault)
+UIElement* UIElement::LoadChildXML(const XMLElement& childElem, XMLFile* styleFile, bool setInstanceDefault)
 {
     bool internalElem = childElem.GetBool("internal");
     if (internalElem)
     {
         URHO3D_LOGERROR("Loading internal child element is not supported");
-        return false;
+        return 0;
     }
 
     String typeName = childElem.GetAttribute("type");
@@ -324,10 +324,13 @@ bool UIElement::LoadChildXML(const XMLElement& childElem, XMLFile* styleFile, bo
         if (!styleFile)
             styleFile = GetDefaultStyle();
         if (!child->LoadXML(childElem, styleFile, setInstanceDefault))
-            return false;
+        {
+            RemoveChild(child, index);
+            return 0;
+        }
     }
 
-    return true;
+    return child;
 }
 
 bool UIElement::SaveXML(XMLElement& dest) const
@@ -886,7 +889,7 @@ void UIElement::SetPriority(int priority)
 {
     if (priority_ == priority)
         return;
-    
+
     priority_ = priority;
     if (parent_)
         parent_->sortOrderDirty_ = true;
@@ -1587,14 +1590,14 @@ bool UIElement::IsVisibleEffective() const
 {
     bool visible = visible_;
     const UIElement* element = parent_;
-    
+
     // Traverse the parent chain
     while (visible && element)
     {
         visible &= element->visible_;
         element = element->parent_;
     }
-    
+
     return visible;
 }
 
@@ -1740,6 +1743,13 @@ void UIElement::GetChildrenWithTag(PODVector<UIElement*>& dest, const String& ta
         GetChildrenWithTagRecursive(dest, tag);
 }
 
+PODVector<UIElement*> UIElement::GetChildrenWithTag(const String& tag, bool recursive) const
+{
+    PODVector<UIElement*> dest;
+    GetChildrenWithTag(dest, tag, recursive);
+    return dest;
+}
+
 void UIElement::GetChildrenWithTagRecursive(PODVector<UIElement*>& dest, const String& tag) const
 {
     for (Vector<SharedPtr<UIElement> >::ConstIterator i = children_.Begin(); i != children_.End(); ++i)
@@ -1782,16 +1792,16 @@ IntRect UIElement::GetCombinedScreenRect()
     {
         for (Vector<SharedPtr<UIElement> >::Iterator i = children_.Begin(); i != children_.End(); ++i)
         {
-            IntVector2 childPos = (*i)->GetScreenPosition();
-            const IntVector2& childSize = (*i)->GetSize();
-            if (childPos.x_ < combined.left_)
-                combined.left_ = childPos.x_;
-            if (childPos.y_ < combined.top_)
-                combined.top_ = childPos.y_;
-            if (childPos.x_ + childSize.x_ > combined.right_)
-                combined.right_ = childPos.x_ + childSize.x_;
-            if (childPos.y_ + childSize.y_ > combined.bottom_)
-                combined.bottom_ = childPos.y_ + childSize.y_;
+            IntRect childCombined((*i)->GetCombinedScreenRect());
+
+            if (childCombined.left_ < combined.left_)
+                combined.left_ = childCombined.left_;
+            if (childCombined.right_ > combined.right_)
+                combined.right_ = childCombined.right_;
+            if (childCombined.top_ < combined.top_)
+                combined.top_ = childCombined.top_;
+            if (childCombined.bottom_ > combined.bottom_)
+                combined.bottom_ = childCombined.bottom_;
         }
     }
 
